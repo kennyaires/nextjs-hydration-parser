@@ -1,0 +1,55 @@
+name: Test Examples
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'examples/**'
+      - 'nextjs_hydration_parser/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'examples/**'
+      - 'nextjs_hydration_parser/**'
+
+jobs:
+  test-examples:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install requests  # For real-world scraping examples
+
+    - name: Test basic usage example
+      run: python examples/basic_usage.py
+
+    - name: Test e-commerce scraping example
+      run: python examples/ecommerce_scraping.py
+
+    - name: Test advanced features example
+      run: python examples/advanced_features.py
+
+    - name: Test sample HTML analysis example
+      run: python examples/sample_html_analysis.py
+
+    - name: Test example runner
+      run: python run_examples.py
+
+    # Skip real-world scraping in CI to avoid hitting external sites
+    - name: Test real-world scraping (dry run)
+      run: |
+        # Just check the script loads without errors
+        python -c "import examples.real_world_scraping; print('Real world scraping example loaded successfully')"
