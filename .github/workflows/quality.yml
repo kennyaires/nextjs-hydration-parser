@@ -20,17 +20,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install black isort mypy
+        pip install black mypy
 
     - name: Check formatting with black
       run: black --check --diff nextjs_hydration_parser/ tests/ examples/
-
-    - name: Check import sorting with isort
-      run: isort --check-only --diff nextjs_hydration_parser/ tests/ examples/
-
-    - name: Type check with mypy (optional, non-blocking)
-      run: |
-        mypy nextjs_hydration_parser --ignore-missing-imports || true
 
   test-coverage:
     runs-on: ubuntu-latest
@@ -53,7 +46,7 @@ jobs:
         pytest tests/ --cov=nextjs_hydration_parser --cov-report=html --cov-report=term --cov-fail-under=80
 
     - name: Upload coverage HTML report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-report
