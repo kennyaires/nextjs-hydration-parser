@@ -304,7 +304,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nextjs-hydration-parser.git
+git clone https://github.com/kennyaires/nextjs-hydration-parser.git
 cd nextjs-hydration-parser
 
 # Create virtual environment

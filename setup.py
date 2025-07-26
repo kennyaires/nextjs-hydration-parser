@@ -48,8 +48,8 @@ setup(
     },
     keywords="nextjs, hydration, html, parser, web-scraping, javascript",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/nextjs-hydration-parser/issues",
-        "Source": "https://github.com/yourusername/nextjs-hydration-parser",
-        "Documentation": "https://github.com/yourusername/nextjs-hydration-parser#readme",
+        "Bug Reports": "https://github.com/kennyaires/nextjs-hydration-parser/issues",
+        "Source": "https://github.com/kennyaires/nextjs-hydration-parser",
+        "Documentation": "https://github.com/kennyaires/nextjs-hydration-parser#readme",
     },
 )
