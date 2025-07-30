@@ -11,7 +11,7 @@ with open(os.path.join(this_directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="nextjs-hydration-parser",
-    version="0.1.0",
+    version="0.2.0",
     author="Kenny Aires",
     description="A Python library for extracting and parsing Next.js hydration data from HTML content",
     long_description=long_description,
