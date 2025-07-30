@@ -345,12 +345,3 @@ This project is not affiliated with or endorsed by Vercel, Next.js, or any relat
 All trademarks and brand names are the property of their respective owners.
 
 This library is intended for ethical use only. Users are solely responsible for ensuring that their use of this software complies with applicable laws, website terms of service, and data usage policies. The authors disclaim any liability for misuse or violations resulting from the use of this tool.
-
-
-## Changelog
-
-### 0.1.0 (2025-07-26)
-- Initial release
-- Basic Next.js hydration data extraction
-- Support for multiple data formats
-- Robust error handling and parsing strategies

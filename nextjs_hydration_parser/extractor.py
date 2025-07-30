@@ -197,12 +197,18 @@ class NextJSHydrationDataExtractor:
 
         # Pattern 2: Look for standalone JSON objects/arrays
         json_starts = []
-        for match in re.finditer(r"[{\[]", text):
+        for match in re.finditer(r"[\{\[]", text):
             json_starts.append(match.start())
 
         for start_pos in json_starts:
             substring = text[start_pos:]
             complete_json = self._extract_complete_json(substring)
+
+            # check if complete_json was not extracted already
+            if complete_json and any(
+                complete_json in item.get("raw_json") for item in extracted
+            ):
+                continue
             if complete_json and len(complete_json) > 10:  # Skip very small objects
                 parsed_json = self._parse_js_object(complete_json)
                 if parsed_json is not None:
