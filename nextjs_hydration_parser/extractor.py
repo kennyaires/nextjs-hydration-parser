@@ -19,14 +19,18 @@ class NextJSHydrationDataExtractor:
         """
         self.script_pattern = r"self\.__next_f\.push\(\[(.*?)\]\)"
         self.logger = logging.getLogger(__name__)
+        self._lightweight_cache = {}
 
-    def parse(self, html_content: str) -> List[Dict[str, Any]]:
+    def parse(self, html_content: str, lightweight: bool = False, target_patterns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Parse Next.js/Nuxt.js hydration data from script tags containing self.__next_f.push calls.
         Returns a list of parsed data chunks, preserving all available information.
 
         Args:
             html_content (str): Raw HTML content containing script tags
+            lightweight (bool): If True, only extract chunks containing target patterns (much faster)
+            target_patterns (Optional[List[str]]): List of strings to search for in lightweight mode.
+                                                    If None in lightweight mode, only parses chunk structure without deep extraction.
 
         Returns:
             List[Dict[str, Any]]: List of parsed data chunks
@@ -37,6 +41,12 @@ class NextJSHydrationDataExtractor:
         for match in re.finditer(self.script_pattern, html_content, re.DOTALL):
             chunk_content = match.group(1)
             position = match.start()
+
+            # In lightweight mode with patterns, filter early
+            if lightweight and target_patterns:
+                # Quick check if any pattern exists in the chunk
+                if not any(pattern in chunk_content for pattern in target_patterns):
+                    continue
 
             try:
                 # Parse the chunk content more carefully
@@ -60,7 +70,7 @@ class NextJSHydrationDataExtractor:
         raw_chunks.sort(key=lambda x: x["_position"])
 
         # Group chunks and handle continuations
-        processed_chunks = self._process_chunks(raw_chunks)
+        processed_chunks = self._process_chunks(raw_chunks, lightweight=lightweight, target_patterns=target_patterns)
 
         return processed_chunks
 
@@ -115,12 +125,14 @@ class NextJSHydrationDataExtractor:
         # Strategy 3: Treat entire content as data with unknown ID
         return {"chunk_id": "unknown", "raw_data": content, "parsed_data": None}
 
-    def _process_chunks(self, raw_chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _process_chunks(self, raw_chunks: List[Dict[str, Any]], lightweight: bool = False, target_patterns: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Process raw chunks, combining continuations and extracting JSON data.
 
         Args:
             raw_chunks (List[Dict]): List of raw parsed chunks
+            lightweight (bool): If True, skip deep extraction for non-matching chunks
+            target_patterns (Optional[List[str]]): Patterns to filter by in lightweight mode
 
         Returns:
             List[Dict[str, Any]]: List of processed data chunks
@@ -143,6 +155,21 @@ class NextJSHydrationDataExtractor:
 
             # Combine all data for this chunk_id
             combined_data = "".join([chunk["raw_data"] for chunk in chunk_list])
+
+            # In lightweight mode, do minimal processing unless patterns match
+            if lightweight and target_patterns:
+                # Check if this chunk contains any target patterns
+                if not any(pattern in combined_data for pattern in target_patterns):
+                    # Skip detailed extraction for non-matching chunks
+                    processed_chunk = {
+                        "chunk_id": chunk_id,
+                        "extracted_data": [],
+                        "chunk_count": len(chunk_list),
+                        "_skipped": True,
+                        "_positions": [chunk["_position"] for chunk in chunk_list],
+                    }
+                    result.append(processed_chunk)
+                    continue
 
             # Try to extract structured data
             extracted_items = self._extract_all_data_structures(combined_data)
@@ -502,3 +529,32 @@ class NextJSHydrationDataExtractor:
                         )
 
         return results
+
+    def parse_and_find(
+        self, html_content: str, patterns: List[str]
+    ) -> List[Any]:
+        """
+        Convenience method: Parse HTML in lightweight mode and find data matching patterns.
+        This is much faster than full parsing when you know what you're looking for.
+
+        Args:
+            html_content (str): Raw HTML content
+            patterns (List[str]): List of key patterns to search for (e.g., ["listingsConnection", "product"])
+
+        Returns:
+            List[Any]: List of matching data items
+
+        Example:
+            >>> extractor = NextJSHydrationDataExtractor()
+            >>> results = extractor.parse_and_find(html, ["listingsConnection"])
+        """
+        # Parse in lightweight mode with target patterns
+        parsed = self.parse(html_content, lightweight=True, target_patterns=patterns)
+        
+        # Find all matching data
+        all_results = []
+        for pattern in patterns:
+            results = self.find_data_by_pattern(parsed, pattern)
+            all_results.extend(results)
+        
+        return all_results

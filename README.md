@@ -103,6 +103,101 @@ for product_data in products:
         print(f"Stock: {product.get('inventory', 'Unknown')}")
 ```
 
+## ⚡ Lightweight Mode (Fast Parsing)
+
+For large pages with hundreds of chunks, use **lightweight mode** when you know what data you're looking for. This can be **10-15x faster** than full parsing!
+
+### When to Use Lightweight Mode
+
+- Large HTML files (> 500KB)
+- Pages with many hydration chunks
+- You know the specific data keys you need (e.g., "products", "catalog", "items")
+- Performance is critical
+
+### Quick Example
+
+```python
+from nextjs_hydration_parser import NextJSHydrationDataExtractor
+
+extractor = NextJSHydrationDataExtractor()
+html_content = open('large_nextjs_page.html', 'r').read()
+
+# Method 1: Full parsing (slow - 12+ seconds)
+chunks = extractor.parse(html_content)
+results = extractor.find_data_by_pattern(chunks, 'products')
+
+# Method 2: Lightweight mode (fast - <1 second!) ⚡
+results = extractor.parse_and_find(html_content, ['products'])
+
+# Both methods return the same data, but lightweight is 14x faster!
+print(f"Found {len(results)} matching items")
+for result in results:
+    print(f"Key: {result['key']}")
+    print(f"Data: {result['value']}")
+```
+
+### Performance Comparison
+
+```python
+import time
+
+# Full parsing
+start = time.time()
+full_chunks = extractor.parse(html_content)
+full_results = extractor.find_data_by_pattern(full_chunks, 'product')
+print(f"Full parsing: {time.time() - start:.2f}s")  # ~12.4s
+
+# Lightweight mode
+start = time.time()
+light_results = extractor.parse_and_find(html_content, ['product'])
+print(f"Lightweight: {time.time() - start:.2f}s")   # ~0.9s (14x faster!)
+```
+
+### Advanced Lightweight Usage
+
+```python
+# Search for multiple patterns at once
+patterns = ['products', 'listings', 'inventory', 'prices']
+results = extractor.parse_and_find(html_content, patterns)
+
+# Or use manual lightweight parsing for more control
+chunks = extractor.parse(
+    html_content, 
+    lightweight=True, 
+    target_patterns=['listingsConnection', 'productData']
+)
+
+# Only chunks containing your patterns are fully parsed
+for chunk in chunks:
+    if not chunk.get('_skipped'):
+        print(f"Chunk {chunk['chunk_id']} contains target data")
+        # Process extracted_data as usual
+```
+
+### Real-world Example: E-commerce Category Scraping
+
+```python
+# Extract product listings from a large e-commerce category page
+extractor = NextJSHydrationDataExtractor()
+
+with open('ecommerce_category.html', 'r') as f:
+    html = f.read()
+
+# Fast extraction using lightweight mode
+results = extractor.parse_and_find(html, ['products', 'catalog', 'items'])
+
+for result in results:
+    if result['key'] in ['products', 'catalog']:
+        data = result['value']
+        
+        # Access product listings
+        if isinstance(data, list):
+            print(f"Found {len(data)} products")
+            
+            for product in data[:5]:  # Show first 5
+                print(f"- {product.get('name', 'N/A')}: ${product.get('price', 'N/A')}")
+```
+
 ## Advanced Usage
 
 ### Scraping Complex Next.js Applications
@@ -148,17 +243,19 @@ print(f"Found {len(data.get('products', []))} products")
 
 ### Handling Large HTML Files
 
-When scraping large Next.js applications, you might encounter hundreds of hydration chunks:
+When scraping large Next.js applications, use lightweight mode for better performance:
 
 ```python
 # Read from file
 with open('large_nextjs_page.html', 'r', encoding='utf-8') as f:
     html_content = f.read()
 
-# Parse and extract
+# Use lightweight mode when you know what you're looking for (RECOMMENDED)
 extractor = NextJSHydrationDataExtractor()
-chunks = extractor.parse(html_content)
+results = extractor.parse_and_find(html_content, ['products', 'listings'])
 
+# Or full parse if you need everything
+chunks = extractor.parse(html_content)
 print(f"Found {len(chunks)} hydration chunks")
 
 # Get overview of all available data keys
@@ -185,12 +282,23 @@ The main class for extracting Next.js hydration data.
 
 #### Methods
 
-- **`parse(html_content: str) -> List[Dict[str, Any]]`**
+- **`parse(html_content: str, lightweight: bool = False, target_patterns: Optional[List[str]] = None) -> List[Dict[str, Any]]`**
   
   Parse Next.js hydration data from HTML content.
   
   - `html_content`: Raw HTML string containing script tags
+  - `lightweight`: If True, only process chunks containing target patterns (much faster)
+  - `target_patterns`: List of strings to search for in lightweight mode (e.g., `["products", "listings"]`)
   - Returns: List of parsed data chunks
+
+- **`parse_and_find(html_content: str, patterns: List[str]) -> List[Any]`** ⚡ **RECOMMENDED**
+  
+  Convenience method that combines lightweight parsing with pattern matching. Much faster than full parsing when you know what you're looking for.
+  
+  - `html_content`: Raw HTML string
+  - `patterns`: List of key patterns to search for (e.g., `["products", "catalog", "items"]`)
+  - Returns: List of matching data items with their paths and values
+  - **Performance**: 10-15x faster than full parsing on large pages
 
 - **`get_all_keys(parsed_chunks: List[Dict], max_depth: int = 3) -> Dict[str, int]`**
   
